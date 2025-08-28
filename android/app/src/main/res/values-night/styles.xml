@@ -1,0 +1,21 @@
+<resources>
+    <!-- Day mode launch theme -->
+    <style name="LaunchTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+
+    <!-- Day mode normal theme -->
+    <style name="NormalTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+
+    <!-- Night mode launch theme -->
+    <style name="LaunchThemeNight" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+
+    <!-- Night mode normal theme -->
+    <style name="NormalThemeNight" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/black</item>
+    </style>
+</resources>

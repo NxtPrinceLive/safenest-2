@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1057482950164",
+    "project_id": "safenest-2025-app",
+    "storage_bucket": "safenest-2025-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1057482950164:android:deceb935e3416e9038c901",
+        "android_client_info": {
+          "package_name": "com.example.safenest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1057482950164-9o7nta1ti5beomc1177jvrdg06cr0ibh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.safenest",
+            "certificate_hash": "450b1482fd9cf22a86ac0c7723e2415e65a20cbc"
+          }
+        },
+        {
+          "client_id": "1057482950164-argkkps704isjad21cn989il099sa13j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBX736JVAcSx0OkHcFCBGBzHbFrxmujjbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1057482950164-argkkps704isjad21cn989il099sa13j.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1057482950164-47n3v6b337ah24h46sg5v2mss0i90ahu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.safenest"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
