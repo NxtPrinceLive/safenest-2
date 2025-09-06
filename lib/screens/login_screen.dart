@@ -15,31 +15,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // ---------------- Google Sign In ----------------
   Future<void> signInWithGoogle() async {
-  try {
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      scopes: ['email'],
-    );
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
 
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-    if (googleUser == null) return; // user cancelled login
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return; // user cancelled login
 
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-      accessToken: googleAuth.accessToken, // <-- valid now
-    );
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken, // <-- valid now
+      );
 
-    await _auth.signInWithCredential(credential);
-
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, "/home");
-  } catch (e) {
-    debugPrint("Google Sign-In Error: $e");
+      await _auth.signInWithCredential(credential);
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Google Sign-In Error: $e");
+    }
   }
-}
-
 
   // ---------------- Phone OTP ----------------
   Future<void> signInWithPhone() async {
@@ -66,8 +65,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 phoneNumber: phoneController.text,
                 verificationCompleted: (PhoneAuthCredential credential) async {
                   await _auth.signInWithCredential(credential);
-                  if (!mounted) return;
-                  Navigator.pushReplacementNamed(context, "/home");
+                  if (mounted) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      Navigator.pushReplacementNamed(context, "/home");
+                    });
+                  }
                 },
                 verificationFailed: (FirebaseAuthException e) {
                   debugPrint("Phone Verification Failed: ${e.message}");
@@ -81,8 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       content: TextField(
                         controller: otpController,
                         keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(hintText: "Enter OTP"),
+                        decoration: const InputDecoration(
+                          hintText: "Enter OTP",
+                        ),
                       ),
                       actions: [
                         TextButton(
@@ -93,8 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               smsCode: otpController.text,
                             );
                             await _auth.signInWithCredential(credential);
-                            if (!mounted) return;
-                            Navigator.pushReplacementNamed(context, "/home");
+                            if (mounted) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  "/home",
+                                );
+                              });
+                            }
                           },
                         ),
                       ],
@@ -108,6 +117,87 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  // ---------------- Email Sign In ----------------
+  Future<void> signInWithEmail() async {
+    TextEditingController emailController = TextEditingController();
+    TextEditingController passwordController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Sign in with Email"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(hintText: "Email"),
+            ),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(hintText: "Password"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text("Sign In"),
+            onPressed: () async {
+              try {
+                await _auth.signInWithEmailAndPassword(
+                  email: emailController.text,
+                  password: passwordController.text,
+                );
+                if (mounted) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.pop(context); // close dialog
+                    Navigator.pushReplacementNamed(context, "/home");
+                  });
+                }
+              } catch (e) {
+                debugPrint("Email Sign-In Error: $e");
+                // Optionally show error dialog
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- Apple Sign In ----------------
+  Future<void> signInWithApple() async {
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      await _auth.signInWithCredential(oauthCredential);
+
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Apple Sign-In Error: $e");
+    }
   }
 
   // ---------------- UI ----------------
@@ -135,9 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: signInWithGoogle,
               ),
               const SizedBox(height: 16),
-              SignInWithAppleButton(
-                onPressed: signInWithApple,
-              ),
+              SignInWithAppleButton(onPressed: signInWithApple),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 icon: const Icon(Icons.phone),
