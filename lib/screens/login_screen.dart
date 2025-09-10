@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import '../widgets/signup_form_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,7 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
   // ---------------- Phone OTP ----------------
   Future<void> signInWithPhone() async {
     TextEditingController phoneController = TextEditingController();
-    TextEditingController otpController = TextEditingController();
 
     // Ask phone number first
     await showDialog(
@@ -72,42 +72,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                 },
                 verificationFailed: (FirebaseAuthException e) {
-                  debugPrint("Phone Verification Failed: ${e.message}");
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.message ?? "Verification failed"),
+                      ),
+                    );
+                  }
                 },
                 codeSent: (String verificationId, int? resendToken) {
-                  // Ask OTP after code sent
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text("Enter OTP"),
-                      content: TextField(
-                        controller: otpController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: "Enter OTP",
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          child: const Text("Verify"),
-                          onPressed: () async {
-                            final credential = PhoneAuthProvider.credential(
-                              verificationId: verificationId,
-                              smsCode: otpController.text,
-                            );
-                            await _auth.signInWithCredential(credential);
-                            if (mounted) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  "/home",
-                                );
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
+                  // Navigate to OTP screen
+                  Navigator.pushNamed(
+                    context,
+                    '/otp',
+                    arguments: verificationId,
                   );
                 },
                 codeAutoRetrievalTimeout: (String verificationId) {},
@@ -200,40 +178,101 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // ---------------- UI ----------------
+  Widget buildSignUpForm(
+    BuildContext context,
+    double buttonHeight,
+    double spacing,
+  ) {
+    return SignUpFormWidget(
+      buttonHeight: buttonHeight,
+      spacing: spacing,
+      onGoogleSignIn: () async {
+        await signInWithGoogle();
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacementNamed(context, "/home");
+          });
+        }
+      },
+      onMicrosoftSignIn: () {
+        // TODO: Implement Microsoft sign-in navigation
+        Navigator.pushReplacementNamed(context, "/home");
+      },
+      onAppleSignIn: () async {
+        await signInWithApple();
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacementNamed(context, "/home");
+          });
+        }
+      },
+      onSlackSignIn: () {
+        // TODO: Implement Slack sign-in navigation
+        Navigator.pushReplacementNamed(context, "/home");
+      },
+      onSignUp: (String email, String password) async {
+        try {
+          await _auth.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacementNamed(context, "/home");
+            });
+          }
+        } catch (e) {
+          debugPrint("Sign-Up Error: $e");
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Sign-up failed: ${e.toString()}")),
+            );
+          }
+        }
+      },
+      onLoginLinkTap: () {
+        // TODO: Implement login link navigation
+        Navigator.pushReplacementNamed(context, "/login");
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("SafeNest Login"),
-        backgroundColor: Colors.teal,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.email),
-                label: const Text("Sign in with Email"),
-                onPressed: signInWithEmail,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            double logoSize = constraints.maxHeight * 0.08;
+            double horizontalPadding = isSmallScreen ? 24.0 : 48.0;
+            double buttonHeight = isSmallScreen ? 50.0 : 60.0;
+            double spacing = isSmallScreen ? 16.0 : 24.0;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: logoSize,
+                      width: logoSize,
+                    ),
+                    SizedBox(height: spacing * 3),
+                    // Sign-up form widget
+                    buildSignUpForm(context, buttonHeight, spacing),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.g_mobiledata),
-                label: const Text("Sign in with Google"),
-                onPressed: signInWithGoogle,
-              ),
-              const SizedBox(height: 16),
-              SignInWithAppleButton(onPressed: signInWithApple),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.phone),
-                label: const Text("Sign in with Phone (OTP)"),
-                onPressed: signInWithPhone,
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -17,9 +17,9 @@ class _OTPScreenState extends State<OTPScreen> {
     String otp = otpController.text.trim();
 
     if (otp.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter 6 digit OTP")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Enter 6 digit OTP")));
       return;
     }
 
@@ -43,18 +43,28 @@ class _OTPScreenState extends State<OTPScreen> {
       );
     } on FirebaseAuthException catch (e) {
       setState(() => loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Invalid OTP")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message ?? "Invalid OTP")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+
+    double horizontalPadding = isSmallScreen ? 24.0 : 48.0;
+    double buttonHeight = isSmallScreen ? 50.0 : 60.0;
+    double spacing = isSmallScreen ? 16.0 : 24.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: spacing,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -62,7 +72,7 @@ class _OTPScreenState extends State<OTPScreen> {
               "Enter OTP",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: spacing * 2),
             TextField(
               controller: otpController,
               keyboardType: TextInputType.number,
@@ -71,24 +81,35 @@ class _OTPScreenState extends State<OTPScreen> {
                 hintText: "6 digit OTP",
                 counterText: "",
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: loading ? null : verifyOTP,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 40),
+            SizedBox(height: spacing * 2),
+            SizedBox(
+              width: double.infinity,
+              height: buttonHeight,
+              child: ElevatedButton(
+                onPressed: loading ? null : verifyOTP,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        "Verify OTP",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Montserrat',
+                        ),
+                      ),
               ),
-              child: loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      "Verify OTP",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
             ),
           ],
         ),
