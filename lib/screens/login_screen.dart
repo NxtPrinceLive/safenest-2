@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../widgets/signup_form_widget.dart';
 import '../widgets/login_form_widget.dart';
 import '../services/auth_service.dart';
@@ -20,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   // Animation controllers
   late AnimationController _formSwitchController;
-  late Animation<double> _formSwitchAnimation;
 
   bool _isLoginMode = false; // false = signup, true = login
 
@@ -31,13 +29,6 @@ class _LoginScreenState extends State<LoginScreen>
     _formSwitchController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
-    );
-
-    _formSwitchAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _formSwitchController,
-        curve: Curves.easeInOutCubic,
-      ),
     );
   }
 
@@ -148,6 +139,36 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  // ---------------- Microsoft Sign In ----------------
+  Future<void> signInWithMicrosoft() async {
+    try {
+      final userModel = await _authService.signInWithMicrosoft();
+      if (userModel != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Microsoft Sign-In Error: $e");
+      _showErrorSnackBar("Microsoft sign-in failed");
+    }
+  }
+
+  // ---------------- Slack Sign In ----------------
+  Future<void> signInWithSlack() async {
+    try {
+      final userModel = await _authService.signInWithSlack();
+      if (userModel != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Slack Sign-In Error: $e");
+      _showErrorSnackBar("Slack sign-in failed");
+    }
+  }
+
   // ---------------- Email Sign Up ----------------
   Future<void> signUpWithEmail(
     String email,
@@ -247,20 +268,10 @@ class _LoginScreenState extends State<LoginScreen>
                               key: const ValueKey('login'),
                               buttonHeight: buttonHeight,
                               spacing: spacing,
-                              onGoogleSignIn: signInWithGoogle,
-                              onMicrosoftSignIn: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  "/home",
-                                );
-                              },
-                              onAppleSignIn: signInWithApple,
-                              onSlackSignIn: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  "/home",
-                                );
-                              },
+                              onGoogleSignIn: () => signInWithGoogle(),
+                              onMicrosoftSignIn: () => signInWithMicrosoft(),
+                              onAppleSignIn: () => signInWithApple(),
+                              onSlackSignIn: () => signInWithSlack(),
                               onLogin: signInWithEmail,
                               onSignUpLinkTap: _toggleFormMode,
                             )
@@ -268,20 +279,10 @@ class _LoginScreenState extends State<LoginScreen>
                               key: const ValueKey('signup'),
                               buttonHeight: buttonHeight,
                               spacing: spacing,
-                              onGoogleSignIn: signInWithGoogle,
-                              onMicrosoftSignIn: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  "/home",
-                                );
-                              },
-                              onAppleSignIn: signInWithApple,
-                              onSlackSignIn: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  "/home",
-                                );
-                              },
+                              onGoogleSignIn: () => signInWithGoogle(),
+                              onMicrosoftSignIn: () => signInWithMicrosoft(),
+                              onAppleSignIn: () => signInWithApple(),
+                              onSlackSignIn: () => signInWithSlack(),
                               onSignUp: signUpWithEmail,
                               onLoginLinkTap: _toggleFormMode,
                             ),

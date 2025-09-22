@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -30,7 +31,10 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error getting current user model: $e');
+      developer.log(
+        'Error getting current user model: $e',
+        name: 'AuthService',
+      );
       return null;
     }
   }
@@ -76,7 +80,7 @@ class AuthService {
 
       return userModel;
     } catch (e) {
-      print('Sign up error: $e');
+      developer.log('Sign up error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -99,7 +103,7 @@ class AuthService {
 
       return await getCurrentUserModel();
     } catch (e) {
-      print('Sign in error: $e');
+      developer.log('Sign in error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -157,7 +161,7 @@ class AuthService {
         return UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
       }
     } catch (e) {
-      print('Google sign-in error: $e');
+      developer.log('Google sign-in error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -173,7 +177,7 @@ class AuthService {
           await _auth.signInWithCredential(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
-          print('Phone verification failed: $e');
+          developer.log('Phone verification failed: $e', name: 'AuthService');
           throw e;
         },
         codeSent: (String vid, int? resendToken) {
@@ -184,7 +188,7 @@ class AuthService {
 
       return verificationId;
     } catch (e) {
-      print('Phone sign-in error: $e');
+      developer.log('Phone sign-in error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -234,7 +238,7 @@ class AuthService {
         return UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
       }
     } catch (e) {
-      print('OTP verification error: $e');
+      developer.log('OTP verification error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -291,7 +295,139 @@ class AuthService {
         return UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
       }
     } catch (e) {
-      print('Apple sign-in error: $e');
+      developer.log('Apple sign-in error: $e', name: 'AuthService');
+      rethrow;
+    }
+  }
+
+  // Sign in with Microsoft
+  Future<UserModel?> signInWithMicrosoft() async {
+    try {
+      // Note: Microsoft sign-in requires additional setup with Azure AD
+      // This is a placeholder implementation
+      developer.log('Microsoft sign-in attempted', name: 'AuthService');
+
+      // For now, we'll simulate a successful sign-in
+      // In production, implement proper Microsoft OAuth flow
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Create a mock user for demonstration
+      // Replace this with actual Microsoft OAuth implementation
+      final mockCredential = await _createMockCredential(
+        'microsoft_user@test.com',
+        'Microsoft User',
+      );
+
+      // Check if user exists in Firestore
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(mockCredential.user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Create new user model for Microsoft sign-in
+        UserModel userModel = UserModel(
+          uid: mockCredential.user!.uid,
+          email: mockCredential.user!.email ?? 'microsoft_user@test.com',
+          displayName: 'Microsoft User',
+          role: UserRole.child, // Default to child for Microsoft sign-in
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        );
+
+        await _firestore
+            .collection('users')
+            .doc(mockCredential.user!.uid)
+            .set(userModel.toJson());
+
+        return userModel;
+      } else {
+        // Update last login time
+        await _firestore
+            .collection('users')
+            .doc(mockCredential.user!.uid)
+            .update({'lastLoginAt': FieldValue.serverTimestamp()});
+
+        return UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
+      }
+    } catch (e) {
+      developer.log('Microsoft sign-in error: $e', name: 'AuthService');
+      rethrow;
+    }
+  }
+
+  // Sign in with Slack
+  Future<UserModel?> signInWithSlack() async {
+    try {
+      // Note: Slack sign-in requires Slack OAuth setup
+      // This is a placeholder implementation
+      developer.log('Slack sign-in attempted', name: 'AuthService');
+
+      // For now, we'll simulate a successful sign-in
+      // In production, implement proper Slack OAuth flow
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Create a mock user for demonstration
+      // Replace this with actual Slack OAuth implementation
+      final mockCredential = await _createMockCredential(
+        'slack_user@test.com',
+        'Slack User',
+      );
+
+      // Check if user exists in Firestore
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(mockCredential.user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Create new user model for Slack sign-in
+        UserModel userModel = UserModel(
+          uid: mockCredential.user!.uid,
+          email: mockCredential.user!.email ?? 'slack_user@test.com',
+          displayName: 'Slack User',
+          role: UserRole.child, // Default to child for Slack sign-in
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        );
+
+        await _firestore
+            .collection('users')
+            .doc(mockCredential.user!.uid)
+            .set(userModel.toJson());
+
+        return userModel;
+      } else {
+        // Update last login time
+        await _firestore
+            .collection('users')
+            .doc(mockCredential.user!.uid)
+            .update({'lastLoginAt': FieldValue.serverTimestamp()});
+
+        return UserModel.fromJson(userDoc.data() as Map<String, dynamic>);
+      }
+    } catch (e) {
+      developer.log('Slack sign-in error: $e', name: 'AuthService');
+      rethrow;
+    }
+  }
+
+  // Helper method to create mock credentials for demonstration
+  // Remove this method in production and implement proper OAuth flows
+  Future<UserCredential> _createMockCredential(
+    String email,
+    String displayName,
+  ) async {
+    try {
+      // Create a temporary anonymous user for demonstration
+      UserCredential userCredential = await _auth.signInAnonymously();
+
+      // Update the user's display name
+      await userCredential.user!.updateDisplayName(displayName);
+
+      return userCredential;
+    } catch (e) {
+      developer.log('Mock credential creation error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -322,7 +458,10 @@ class AuthService {
 
       return code;
     } catch (e) {
-      print('Error generating parent-child code: $e');
+      developer.log(
+        'Error generating parent-child code: $e',
+        name: 'AuthService',
+      );
       rethrow;
     }
   }
@@ -351,7 +490,7 @@ class AuthService {
 
       return true;
     } catch (e) {
-      print('Error linking child to parent: $e');
+      developer.log('Error linking child to parent: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -390,7 +529,10 @@ class AuthService {
         'parentId': parentId,
       });
     } catch (e) {
-      print('Error creating parent-child relationship: $e');
+      developer.log(
+        'Error creating parent-child relationship: $e',
+        name: 'AuthService',
+      );
       rethrow;
     }
   }
@@ -429,7 +571,10 @@ class AuthService {
 
       return children;
     } catch (e) {
-      print('Error getting children for parent: $e');
+      developer.log(
+        'Error getting children for parent: $e',
+        name: 'AuthService',
+      );
       return [];
     }
   }
@@ -461,7 +606,7 @@ class AuthService {
 
       return null;
     } catch (e) {
-      print('Error getting parent for child: $e');
+      developer.log('Error getting parent for child: $e', name: 'AuthService');
       return null;
     }
   }
@@ -471,7 +616,7 @@ class AuthService {
     try {
       await _auth.signOut();
     } catch (e) {
-      print('Sign out error: $e');
+      developer.log('Sign out error: $e', name: 'AuthService');
       rethrow;
     }
   }
@@ -487,7 +632,7 @@ class AuthService {
         await currentUser!.delete();
       }
     } catch (e) {
-      print('Delete account error: $e');
+      developer.log('Delete account error: $e', name: 'AuthService');
       rethrow;
     }
   }

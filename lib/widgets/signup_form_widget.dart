@@ -8,10 +8,10 @@ import '../widgets/role_selection_widget.dart';
 class SignUpFormWidget extends StatefulWidget {
   final double buttonHeight;
   final double spacing;
-  final VoidCallback onGoogleSignIn;
-  final VoidCallback onMicrosoftSignIn;
-  final VoidCallback onAppleSignIn;
-  final VoidCallback onSlackSignIn;
+  final Future<void> Function() onGoogleSignIn;
+  final Future<void> Function() onMicrosoftSignIn;
+  final Future<void> Function() onAppleSignIn;
+  final Future<void> Function() onSlackSignIn;
   final Function(
     String email,
     String password,
@@ -51,6 +51,12 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
   bool _obscurePassword = true;
   bool _acceptTerms = false;
   UserRole _selectedRole = UserRole.child;
+
+  // Social sign-in loading states
+  bool _isGoogleLoading = false;
+  bool _isMicrosoftLoading = false;
+  bool _isAppleLoading = false;
+  bool _isSlackLoading = false;
 
   @override
   void initState() {
@@ -277,6 +283,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: RoleSelectionWidget(
+                selectedRole: _selectedRole,
                 onRoleSelected: (UserRole role) {
                   setState(() {
                     _selectedRole = role;
@@ -423,9 +430,31 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: Icon(MdiIcons.google, size: 20, color: Colors.red),
-                    label: const Text("Google"),
-                    onPressed: widget.onGoogleSignIn,
+                    icon: _isGoogleLoading
+                        ? SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.red,
+                              ),
+                            ),
+                          )
+                        : Icon(MdiIcons.google, size: 20, color: Colors.red),
+                    label: Text(_isGoogleLoading ? "Loading..." : "Google"),
+                    onPressed: _isGoogleLoading
+                        ? null
+                        : () async {
+                            setState(() => _isGoogleLoading = true);
+                            try {
+                              await widget.onGoogleSignIn();
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isGoogleLoading = false);
+                              }
+                            }
+                          },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey.shade300),
@@ -439,13 +468,37 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                 SizedBox(width: widget.spacing / 2),
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: Icon(
-                      MdiIcons.microsoftWindows,
-                      size: 20,
-                      color: Colors.blue.shade600,
+                    icon: _isMicrosoftLoading
+                        ? SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.blue.shade600,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            MdiIcons.microsoftWindows,
+                            size: 20,
+                            color: Colors.blue.shade600,
+                          ),
+                    label: Text(
+                      _isMicrosoftLoading ? "Loading..." : "Microsoft",
                     ),
-                    label: const Text("Microsoft"),
-                    onPressed: widget.onMicrosoftSignIn,
+                    onPressed: _isMicrosoftLoading
+                        ? null
+                        : () async {
+                            setState(() => _isMicrosoftLoading = true);
+                            try {
+                              await widget.onMicrosoftSignIn();
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isMicrosoftLoading = false);
+                              }
+                            }
+                          },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey.shade300),
@@ -463,9 +516,31 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: Icon(MdiIcons.apple, size: 20, color: Colors.black),
-                    label: const Text("Apple"),
-                    onPressed: widget.onAppleSignIn,
+                    icon: _isAppleLoading
+                        ? SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.black,
+                              ),
+                            ),
+                          )
+                        : Icon(MdiIcons.apple, size: 20, color: Colors.black),
+                    label: Text(_isAppleLoading ? "Loading..." : "Apple"),
+                    onPressed: _isAppleLoading
+                        ? null
+                        : () async {
+                            setState(() => _isAppleLoading = true);
+                            try {
+                              await widget.onAppleSignIn();
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isAppleLoading = false);
+                              }
+                            }
+                          },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey.shade300),
@@ -479,16 +554,38 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                 SizedBox(width: widget.spacing / 2),
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: Image.network(
-                        'https://upload.wikimedia.org/wikipedia/commons/7/76/Slack_Icon.png',
-                        color: Colors.purple.shade600,
-                      ),
-                    ),
-                    label: const Text("Slack"),
-                    onPressed: widget.onSlackSignIn,
+                    icon: _isSlackLoading
+                        ? SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.purple.shade600,
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: Image.network(
+                              'https://upload.wikimedia.org/wikipedia/commons/7/76/Slack_Icon.png',
+                              color: Colors.purple.shade600,
+                            ),
+                          ),
+                    label: Text(_isSlackLoading ? "Loading..." : "Slack"),
+                    onPressed: _isSlackLoading
+                        ? null
+                        : () async {
+                            setState(() => _isSlackLoading = true);
+                            try {
+                              await widget.onSlackSignIn();
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSlackLoading = false);
+                              }
+                            }
+                          },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey.shade300),

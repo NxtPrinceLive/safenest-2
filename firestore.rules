@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection
+    match /users/{userId} {
+      // Allow read/write if user is authenticated and owns the document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow creation during signup (before user document exists)
+      allow create: if request.auth != null;
+
+      // Allow read for parent-child relationships
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId ||
+         (exists(/databases/$(database)/documents/parent_child_relationships/$(request.auth.uid)_$(userId)) &&
+          get(/databases/$(database)/documents/parent_child_relationships/$(request.auth.uid)_$(userId)).data.parentId == request.auth.uid));
+    }
+
+    // Parent-child codes collection
+    match /parent_child_codes/{codeId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Parent-child relationships collection
+    match /parent_child_relationships/{relationshipId} {
+      // Allow read/write if user is part of the relationship
+      allow read, write: if request.auth != null &&
+        (resource.data.parentId == request.auth.uid ||
+         resource.data.childId == request.auth.uid);
+    }
+
+    // Helper function to check if user is parent of another user
+    function isParentOf(parentId, childId) {
+      return exists(/databases/$(database)/documents/parent_child_relationships/$(parentId)_$(childId)) &&
+        get(/databases/$(database)/documents/parent_child_relationships/$(parentId)_$(childId)).data.parentId == parentId;
+    }
+
+    // Helper function to check if user is child of another user
+    function isChildOf(childId, parentId) {
+      return exists(/databases/$(database)/documents/parent_child_relationships/$(parentId)_$(childId)) &&
+        get(/databases/$(database)/documents/parent_child_relationships/$(parentId)_$(childId)).data.parentId == parentId;
+    }
+  }
+}
