@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../widgets/signup_form_widget.dart';
+import '../widgets/login_form_widget.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,8 +12,49 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with TickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Animation controllers
+  late AnimationController _formSwitchController;
+  late Animation<double> _formSwitchAnimation;
+
+  bool _isLoginMode = false; // false = signup, true = login
+
+  @override
+  void initState() {
+    super.initState();
+
+    _formSwitchController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _formSwitchAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _formSwitchController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _formSwitchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFormMode() {
+    setState(() {
+      _isLoginMode = !_isLoginMode;
+      if (_isLoginMode) {
+        _formSwitchController.forward();
+      } else {
+        _formSwitchController.reverse();
+      }
+    });
+  }
 
   // ---------------- Google Sign In ----------------
   Future<void> signInWithGoogle() async {
@@ -27,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
-        accessToken: googleAuth.accessToken, // <-- valid now
+        accessToken: googleAuth.accessToken,
       );
 
       await _auth.signInWithCredential(credential);
@@ -38,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       debugPrint("Google Sign-In Error: $e");
+      _showErrorSnackBar("Google sign-in failed");
     }
   }
 
@@ -45,7 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> signInWithPhone() async {
     TextEditingController phoneController = TextEditingController();
 
-    // Ask phone number first
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -59,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(
             child: const Text("Send OTP"),
             onPressed: () async {
-              Navigator.pop(context); // close dialog
+              Navigator.pop(context);
 
               await _auth.verifyPhoneNumber(
                 phoneNumber: phoneController.text,
@@ -73,15 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 verificationFailed: (FirebaseAuthException e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.message ?? "Verification failed"),
-                      ),
-                    );
+                    _showErrorSnackBar(e.message ?? "Verification failed");
                   }
                 },
                 codeSent: (String verificationId, int? resendToken) {
-                  // Navigate to OTP screen
                   Navigator.pushNamed(
                     context,
                     '/otp',
@@ -98,57 +135,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ---------------- Email Sign In ----------------
-  Future<void> signInWithEmail() async {
-    TextEditingController emailController = TextEditingController();
-    TextEditingController passwordController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Sign in with Email"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(hintText: "Email"),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(hintText: "Password"),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Cancel"),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: const Text("Sign In"),
-            onPressed: () async {
-              try {
-                await _auth.signInWithEmailAndPassword(
-                  email: emailController.text,
-                  password: passwordController.text,
-                );
-                if (mounted) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Navigator.pop(context); // close dialog
-                    Navigator.pushReplacementNamed(context, "/home");
-                  });
-                }
-              } catch (e) {
-                debugPrint("Email Sign-In Error: $e");
-                // Optionally show error dialog
-              }
-            },
-          ),
-        ],
-      ),
-    );
+  Future<void> signInWithEmail(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Email Sign-In Error: $e");
+      _showErrorSnackBar("Invalid email or password");
+    }
   }
 
   // ---------------- Apple Sign In ----------------
@@ -175,65 +173,38 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       debugPrint("Apple Sign-In Error: $e");
+      _showErrorSnackBar("Apple sign-in failed");
     }
   }
 
-  Widget buildSignUpForm(
-    BuildContext context,
-    double buttonHeight,
-    double spacing,
-  ) {
-    return SignUpFormWidget(
-      buttonHeight: buttonHeight,
-      spacing: spacing,
-      onGoogleSignIn: () async {
-        await signInWithGoogle();
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacementNamed(context, "/home");
-          });
-        }
-      },
-      onMicrosoftSignIn: () {
-        // TODO: Implement Microsoft sign-in navigation
-        Navigator.pushReplacementNamed(context, "/home");
-      },
-      onAppleSignIn: () async {
-        await signInWithApple();
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacementNamed(context, "/home");
-          });
-        }
-      },
-      onSlackSignIn: () {
-        // TODO: Implement Slack sign-in navigation
-        Navigator.pushReplacementNamed(context, "/home");
-      },
-      onSignUp: (String email, String password) async {
-        try {
-          await _auth.createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-          if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacementNamed(context, "/home");
-            });
-          }
-        } catch (e) {
-          debugPrint("Sign-Up Error: $e");
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Sign-up failed: ${e.toString()}")),
-            );
-          }
-        }
-      },
-      onLoginLinkTap: () {
-        // TODO: Implement login link navigation
-        Navigator.pushReplacementNamed(context, "/login");
-      },
+  // ---------------- Email Sign Up ----------------
+  Future<void> signUpWithEmail(String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, "/home");
+        });
+      }
+    } catch (e) {
+      debugPrint("Sign-Up Error: $e");
+      _showErrorSnackBar("Sign-up failed: ${e.toString()}");
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 
@@ -259,15 +230,84 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo
-                    Image.asset(
-                      'assets/images/logo.png',
+                    // Logo with animation
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
                       height: logoSize,
                       width: logoSize,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     SizedBox(height: spacing * 3),
-                    // Sign-up form widget
-                    buildSignUpForm(context, buttonHeight, spacing),
+
+                    // Animated form container
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position:
+                                    Tween<Offset>(
+                                      begin: const Offset(1.0, 0.0),
+                                      end: Offset.zero,
+                                    ).animate(
+                                      CurvedAnimation(
+                                        parent: animation,
+                                        curve: Curves.easeInOutCubic,
+                                      ),
+                                    ),
+                                child: child,
+                              ),
+                            );
+                          },
+                      child: _isLoginMode
+                          ? LoginFormWidget(
+                              key: const ValueKey('login'),
+                              buttonHeight: buttonHeight,
+                              spacing: spacing,
+                              onGoogleSignIn: signInWithGoogle,
+                              onMicrosoftSignIn: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  "/home",
+                                );
+                              },
+                              onAppleSignIn: signInWithApple,
+                              onSlackSignIn: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  "/home",
+                                );
+                              },
+                              onLogin: signInWithEmail,
+                              onSignUpLinkTap: _toggleFormMode,
+                            )
+                          : SignUpFormWidget(
+                              key: const ValueKey('signup'),
+                              buttonHeight: buttonHeight,
+                              spacing: spacing,
+                              onGoogleSignIn: signInWithGoogle,
+                              onMicrosoftSignIn: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  "/home",
+                                );
+                              },
+                              onAppleSignIn: signInWithApple,
+                              onSlackSignIn: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  "/home",
+                                );
+                              },
+                              onSignUp: signUpWithEmail,
+                              onLoginLinkTap: _toggleFormMode,
+                            ),
+                    ),
                   ],
                 ),
               ),

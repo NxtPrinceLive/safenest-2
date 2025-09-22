@@ -1,19 +1,18 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-class SignUpFormWidget extends StatefulWidget {
+class LoginFormWidget extends StatefulWidget {
   final double buttonHeight;
   final double spacing;
   final VoidCallback onGoogleSignIn;
   final VoidCallback onMicrosoftSignIn;
   final VoidCallback onAppleSignIn;
   final VoidCallback onSlackSignIn;
-  final Function(String email, String password) onSignUp;
-  final VoidCallback onLoginLinkTap;
+  final Function(String email, String password) onLogin;
+  final VoidCallback onSignUpLinkTap;
 
-  const SignUpFormWidget({
+  const LoginFormWidget({
     Key? key,
     required this.buttonHeight,
     required this.spacing,
@@ -21,15 +20,15 @@ class SignUpFormWidget extends StatefulWidget {
     required this.onMicrosoftSignIn,
     required this.onAppleSignIn,
     required this.onSlackSignIn,
-    required this.onSignUp,
-    required this.onLoginLinkTap,
+    required this.onLogin,
+    required this.onSignUpLinkTap,
   }) : super(key: key);
 
   @override
-  State<SignUpFormWidget> createState() => _SignUpFormWidgetState();
+  State<LoginFormWidget> createState() => _LoginFormWidgetState();
 }
 
-class _SignUpFormWidgetState extends State<SignUpFormWidget>
+class _LoginFormWidgetState extends State<LoginFormWidget>
     with TickerProviderStateMixin {
   late TextEditingController emailController;
   late TextEditingController passwordController;
@@ -40,7 +39,6 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _acceptTerms = false;
 
   @override
   void initState() {
@@ -81,14 +79,9 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
     super.dispose();
   }
 
-  void _handleSignUp() async {
+  void _handleLogin() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       _showSnackBar('Please fill in all fields');
-      return;
-    }
-
-    if (!_acceptTerms) {
-      _showSnackBar('Please accept the Terms of Service and Privacy Policy');
       return;
     }
 
@@ -97,7 +90,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
     // Simulate loading for better UX
     await Future.delayed(const Duration(milliseconds: 800));
 
-    widget.onSignUp(emailController.text, passwordController.text);
+    widget.onLogin(emailController.text, passwordController.text);
     setState(() => _isLoading = false);
   }
 
@@ -122,7 +115,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              "Create your account",
+              "Welcome back",
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -133,7 +126,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
             ),
             SizedBox(height: widget.spacing / 2),
             const Text(
-              "Join SafeNest today",
+              "Sign in to your account",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
@@ -187,7 +180,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                 obscureText: _obscurePassword,
                 style: const TextStyle(fontFamily: 'Montserrat'),
                 decoration: InputDecoration(
-                  hintText: "Create a password",
+                  hintText: "Enter your password",
                   hintStyle: TextStyle(
                     color: Colors.grey.shade400,
                     fontFamily: 'Montserrat',
@@ -219,86 +212,37 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
             ),
             SizedBox(height: widget.spacing / 2),
 
-            // Terms and Conditions Checkbox
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: Checkbox(
-                      value: _acceptTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptTerms = value ?? false;
-                        });
-                      },
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      activeColor: Colors.blue.shade600,
-                    ),
+            // Forgot Password Link
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  // TODO: Implement forgot password
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  "Forgot password?",
+                  style: TextStyle(
+                    color: Colors.blue.shade600,
+                    fontSize: 14,
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          fontFamily: 'Montserrat',
-                        ),
-                        children: [
-                          const TextSpan(text: "I agree to the "),
-                          TextSpan(
-                            text: "Terms of Service",
-                            style: TextStyle(
-                              color: Colors.blue.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () async {
-                                final url = Uri.parse(
-                                  'https://www.instagram.com/kxndari/',
-                                );
-                                if (await canLaunchUrl(url)) {
-                                  await launchUrl(url);
-                                }
-                              },
-                          ),
-                          const TextSpan(text: " and "),
-                          TextSpan(
-                            text: "Privacy Policy",
-                            style: TextStyle(
-                              color: Colors.blue.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () async {
-                                final url = Uri.parse(
-                                  'https://www.instagram.com/kxndari/',
-                                );
-                                if (await canLaunchUrl(url)) {
-                                  await launchUrl(url);
-                                }
-                              },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             SizedBox(height: widget.spacing),
 
-            // Sign Up Button
+            // Login Button
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               height: widget.buttonHeight,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleSignUp,
+                onPressed: _isLoading ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue.shade600,
                   foregroundColor: Colors.white,
@@ -320,7 +264,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                         ),
                       )
                     : const Text(
-                        "Create account",
+                        "Sign in",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -436,7 +380,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
             ),
             SizedBox(height: widget.spacing * 2),
 
-            // Login Link
+            // Sign Up Link
             Center(
               child: RichText(
                 text: TextSpan(
@@ -445,92 +389,23 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                     fontFamily: 'Montserrat',
                     color: Colors.black54,
                   ),
-                  text: "Already have an account? ",
+                  text: "Don't have an account? ",
                   children: [
                     TextSpan(
-                      text: "Sign in",
+                      text: "Sign up",
                       style: TextStyle(
                         color: Colors.blue.shade600,
                         fontWeight: FontWeight.w600,
                         decoration: TextDecoration.underline,
                       ),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = widget.onLoginLinkTap,
+                        ..onTap = widget.onSignUpLinkTap,
                     ),
                   ],
                 ),
               ),
             ),
             SizedBox(height: widget.spacing),
-
-            // Footer Text
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Text(
-                    "One account for SafeNest application across all Platforms.",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                      fontFamily: 'Montserrat',
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade400,
-                        fontFamily: 'Montserrat',
-                      ),
-                      children: [
-                        const TextSpan(
-                          text:
-                              "This site is protected by reCAPTCHA and the Google ",
-                        ),
-                        TextSpan(
-                          text: "Privacy Policy",
-                          style: TextStyle(
-                            color: Colors.blue.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () async {
-                              final url = Uri.parse(
-                                'https://www.instagram.com/kxndari/',
-                              );
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url);
-                              }
-                            },
-                        ),
-                        const TextSpan(text: " and "),
-                        TextSpan(
-                          text: "Terms of Service",
-                          style: TextStyle(
-                            color: Colors.blue.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () async {
-                              final url = Uri.parse(
-                                'https://www.instagram.com/kxndari/',
-                              );
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url);
-                              }
-                            },
-                        ),
-                        const TextSpan(text: " apply."),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

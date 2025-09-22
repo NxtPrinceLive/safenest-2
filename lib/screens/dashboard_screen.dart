@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/custom_card.dart';
 import '../widgets/bottom_navbar.dart';
 import 'location_screen.dart';
 import 'controls_screen.dart';
 import 'settings_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,6 +23,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ControlsScreen(),
     SettingsScreen(),
   ];
+
+  void _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +72,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () {
               // TODO: Navigate to notifications
             },
+          ),
+          // Logout
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
+            onPressed: () => _logout(context),
           ),
         ],
       ),
