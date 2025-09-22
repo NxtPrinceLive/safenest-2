@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/user_model.dart';
+import '../widgets/role_selection_widget.dart';
 
 class SignUpFormWidget extends StatefulWidget {
   final double buttonHeight;
@@ -10,7 +12,13 @@ class SignUpFormWidget extends StatefulWidget {
   final VoidCallback onMicrosoftSignIn;
   final VoidCallback onAppleSignIn;
   final VoidCallback onSlackSignIn;
-  final Function(String email, String password) onSignUp;
+  final Function(
+    String email,
+    String password,
+    String displayName,
+    UserRole role,
+  )
+  onSignUp;
   final VoidCallback onLoginLinkTap;
 
   const SignUpFormWidget({
@@ -33,6 +41,7 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
     with TickerProviderStateMixin {
   late TextEditingController emailController;
   late TextEditingController passwordController;
+  late TextEditingController displayNameController;
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -41,12 +50,14 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _acceptTerms = false;
+  UserRole _selectedRole = UserRole.child;
 
   @override
   void initState() {
     super.initState();
     emailController = TextEditingController();
     passwordController = TextEditingController();
+    displayNameController = TextEditingController();
 
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -76,13 +87,16 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    displayNameController.dispose();
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
   }
 
   void _handleSignUp() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        displayNameController.text.isEmpty) {
       _showSnackBar('Please fill in all fields');
       return;
     }
@@ -97,7 +111,12 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
     // Simulate loading for better UX
     await Future.delayed(const Duration(milliseconds: 800));
 
-    widget.onSignUp(emailController.text, passwordController.text);
+    widget.onSignUp(
+      emailController.text,
+      passwordController.text,
+      displayNameController.text,
+      _selectedRole,
+    );
     setState(() => _isLoading = false);
   }
 
@@ -215,6 +234,54 @@ class _SignUpFormWidgetState extends State<SignUpFormWidget>
                     },
                   ),
                 ),
+              ),
+            ),
+            SizedBox(height: widget.spacing),
+
+            // Display Name Field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: TextField(
+                controller: displayNameController,
+                style: const TextStyle(fontFamily: 'Montserrat'),
+                decoration: InputDecoration(
+                  hintText: "Enter your display name",
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontFamily: 'Montserrat',
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.person_outline,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: widget.spacing),
+
+            // Role Selection
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: RoleSelectionWidget(
+                onRoleSelected: (UserRole role) {
+                  setState(() {
+                    _selectedRole = role;
+                  });
+                },
               ),
             ),
             SizedBox(height: widget.spacing / 2),

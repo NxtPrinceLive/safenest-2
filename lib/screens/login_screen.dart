@@ -4,6 +4,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../widgets/signup_form_widget.dart';
 import '../widgets/login_form_widget.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthService _authService = AuthService();
 
   // Animation controllers
   late AnimationController _formSwitchController;
@@ -59,21 +61,8 @@ class _LoginScreenState extends State<LoginScreen>
   // ---------------- Google Sign In ----------------
   Future<void> signInWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
-
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return; // user cancelled login
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-        accessToken: googleAuth.accessToken,
-      );
-
-      await _auth.signInWithCredential(credential);
-      if (mounted) {
+      final userModel = await _authService.signInWithGoogle();
+      if (userModel != null && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, "/home");
         });
@@ -103,30 +92,22 @@ class _LoginScreenState extends State<LoginScreen>
             onPressed: () async {
               Navigator.pop(context);
 
-              await _auth.verifyPhoneNumber(
-                phoneNumber: phoneController.text,
-                verificationCompleted: (PhoneAuthCredential credential) async {
-                  await _auth.signInWithCredential(credential);
-                  if (mounted) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      Navigator.pushReplacementNamed(context, "/home");
-                    });
-                  }
-                },
-                verificationFailed: (FirebaseAuthException e) {
-                  if (mounted) {
-                    _showErrorSnackBar(e.message ?? "Verification failed");
-                  }
-                },
-                codeSent: (String verificationId, int? resendToken) {
+              try {
+                final verificationId = await _authService.signInWithPhone(
+                  phoneController.text,
+                );
+                if (verificationId != null && mounted) {
                   Navigator.pushNamed(
                     context,
                     '/otp',
                     arguments: verificationId,
                   );
-                },
-                codeAutoRetrievalTimeout: (String verificationId) {},
-              );
+                }
+              } catch (e) {
+                if (mounted) {
+                  _showErrorSnackBar("Failed to send OTP: ${e.toString()}");
+                }
+              }
             },
           ),
         ],
@@ -137,8 +118,11 @@ class _LoginScreenState extends State<LoginScreen>
   // ---------------- Email Sign In ----------------
   Future<void> signInWithEmail(String email, String password) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      if (mounted) {
+      final userModel = await _authService.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (userModel != null && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, "/home");
         });
@@ -152,21 +136,8 @@ class _LoginScreenState extends State<LoginScreen>
   // ---------------- Apple Sign In ----------------
   Future<void> signInWithApple() async {
     try {
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-
-      final oauthCredential = OAuthProvider("apple.com").credential(
-        idToken: appleCredential.identityToken,
-        accessToken: appleCredential.authorizationCode,
-      );
-
-      await _auth.signInWithCredential(oauthCredential);
-
-      if (mounted) {
+      final userModel = await _authService.signInWithApple();
+      if (userModel != null && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, "/home");
         });
@@ -178,13 +149,20 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ---------------- Email Sign Up ----------------
-  Future<void> signUpWithEmail(String email, String password) async {
+  Future<void> signUpWithEmail(
+    String email,
+    String password,
+    String displayName,
+    UserRole role,
+  ) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      final userModel = await _authService.signUpWithEmailAndPassword(
         email: email,
         password: password,
+        displayName: displayName,
+        role: role,
       );
-      if (mounted) {
+      if (userModel != null && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, "/home");
         });
